@@ -58,13 +58,20 @@ def jsonl_to_dataframe(input_path):
 
     return df
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 def get_loss_mats(data_dir = 'pythia_tools/pythia_tools/data_files'):
     print(data_dir)
     hi = join(data_dir, 'losses_rev_140_model_pythia-70m-deduped.pt')
     print(hi)
     print(exists(hi))
-    L70 = torch.load(join(data_dir, 'losses_rev_140_model_pythia-70m-deduped.pt')).float()
-    L160 = torch.load(join(data_dir, 'losses_rev_140_model_pythia-160m-deduped.pt')).float()
-    L410 = torch.load(join(data_dir, 'losses_rev_140_model_pythia-410m-deduped.pt')).float()
-    L1B = torch.load(join(data_dir, 'losses_rev_140_model_pythia-1b-deduped.pt')).float()
+    L70 = torch.load(join(data_dir, 'losses_rev_140_model_pythia-70m-deduped.pt')).float().to(device)
+    L160 = torch.load(join(data_dir, 'losses_rev_140_model_pythia-160m-deduped.pt')).float().to(device)
+    L410 = torch.load(join(data_dir, 'losses_rev_140_model_pythia-410m-deduped.pt')).float().to(device)
+    L1B = torch.load(join(data_dir, 'losses_rev_140_model_pythia-1b-deduped.pt')).float().to(device)
     return [L70, L160, L410, L1B]
+
+def get_token_mat(data_dir = 'pythia_tools/pythia_tools/data_files'):
+    T = torch.load(join(data_dir, 'tokens_10691x600.pt')).to(device)
+    print(T.shape)
+    return T

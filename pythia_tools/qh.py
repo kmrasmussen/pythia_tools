@@ -31,9 +31,6 @@ def empirical_entropy(arr):
   probs = counts / len(arr)
   return entropy(probs, base=2)
 def mem_size(tensor):
-  """
-  Calculate the size of a PyTorch tensor in memory in MB.
-  """
   element_size = tensor.element_size() # size of one element in bytes
   num_elements = tensor.numel() # total number of elements in the tensor
   total_size = element_size * num_elements # total size of the tensor in bytes
@@ -100,11 +97,8 @@ def qdg_eric_for_entries(model, T, filtered_entries, max_entries=None):
   return torch.stack(filtered_grads)
 
 def get_similarity_matrix(A):
-  # Compute the norms of the rows of A
   norms = torch.norm(A, dim=1)
-  # Compute the dot product of the rows of A
   dot_products = A @ A.t()
-  # Compute the cosine similarity matrix B
   B = dot_products / torch.ger(norms, norms)
   return B
 
@@ -119,17 +113,7 @@ def plot_entry_nats(T, entries, idx, param_sizes):
   ax.semilogx(param_sizes, nats)
   plt.show()
 
-def get_mlp_act_entry(model, T, seq, pos, layer):
-  input_ids = T[seq,:pos+2].reshape(1,-1)
-  logits, cache = model.run_with_cache(T[0,:])
-  acts = torch.clone(cache[f'blocks.{layer}.mlp.hook_post'][0,pos,:])
-  del logits
-  del cache
-  torch.cuda.empty_cache()
-  return acts
 
-def get_mlp_act_entries(model, T, entries, layer):
-  return torch.stack([get_mlp_act_entry(model, T, entry[0], entry[1], layer) for entry in tqdm(entries, position=0, leave=True)])
 
 def qdg_ag_for_entry(model, T, seq, pos):
   model.zero_grad()
