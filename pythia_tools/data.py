@@ -2,6 +2,8 @@ import zstandard as zstd
 import json
 import io
 import pandas as pd
+from os.path import join, exists
+import torch
 
 def extract_lines(input_path, output_path, num_lines, line_cap=None):
     # Create a zstandard decompression context
@@ -55,3 +57,14 @@ def jsonl_to_dataframe(input_path):
     df = pd.DataFrame(data)
 
     return df
+
+def get_loss_mats(data_dir = 'pythia_tools/pythia_tools/data_files'):
+    print(data_dir)
+    hi = join(data_dir, 'losses_rev_140_model_pythia-70m-deduped.pt')
+    print(hi)
+    print(exists(hi))
+    L70 = torch.load(join(data_dir, 'losses_rev_140_model_pythia-70m-deduped.pt')).float()
+    L160 = torch.load(join(data_dir, 'losses_rev_140_model_pythia-160m-deduped.pt')).float()
+    L410 = torch.load(join(data_dir, 'losses_rev_140_model_pythia-410m-deduped.pt')).float()
+    L1B = torch.load(join(data_dir, 'losses_rev_140_model_pythia-1b-deduped.pt')).float()
+    return [L70, L160, L410, L1B]
