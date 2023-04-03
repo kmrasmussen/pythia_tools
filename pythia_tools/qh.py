@@ -31,13 +31,13 @@ def empirical_entropy(arr):
   probs = counts / len(arr)
   return entropy(probs, base=2)
 def mem_size(tensor):
-    """
-    Calculate the size of a PyTorch tensor in memory in MB.
-    """
-    element_size = tensor.element_size() # size of one element in bytes
-    num_elements = tensor.numel() # total number of elements in the tensor
-    total_size = element_size * num_elements # total size of the tensor in bytes
-    return total_size / (1024 ** 2)
+  """
+  Calculate the size of a PyTorch tensor in memory in MB.
+  """
+  element_size = tensor.element_size() # size of one element in bytes
+  num_elements = tensor.numel() # total number of elements in the tensor
+  total_size = element_size * num_elements # total size of the tensor in bytes
+  return total_size / (1024 ** 2)
 
 def get_filtered_entries(new_lownat_entries, T):
   filtered_entries = []

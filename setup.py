@@ -8,7 +8,7 @@ setup(
     author_email="kasmura@gmail.com",
     url="https://github.com/kmrasmussen/pythia_tools",
     packages=find_packages(),
-    install_requires=['seaborn', 'leidenalg', 'numpy', 'scikit-learn', 'matplotlib', 'tqdm',  'scipy', 'umap-learn', 'statsmodels', 'pandas', 'zstandard'],
+    install_requires=['transformers', 'seaborn', 'leidenalg', 'numpy', 'scikit-learn', 'matplotlib', 'tqdm',  'scipy', 'umap-learn', 'statsmodels', 'pandas', 'zstandard'],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
