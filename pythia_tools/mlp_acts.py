@@ -32,7 +32,8 @@ def cluster_spectral_from_sim(H_sim, K):
 
 def get_mlp_act_entry(model, T, seq, pos, layer):
     input_ids = T[seq,:pos+2].reshape(1,-1)
-    logits, cache = model.run_with_cache(T[0,:])
+    with torch.no_grad():
+        logits, cache = model.run_with_cache(T[0,:])
     acts = torch.clone(cache[f'blocks.{layer}.mlp.hook_post'][0,pos,:])
     del logits
     del cache
@@ -42,12 +43,13 @@ def get_mlp_act_entry(model, T, seq, pos, layer):
 def get_mlp_act_entry_all_layers(model, T, seq, pos):
     n_layers = len(model.blocks)
     input_ids = T[seq,:pos+2].reshape(1,-1)
-    logits, cache = model.run_with_cache(T[0,:])
+    with torch.no_grad():
+        logits, cache = model.run_with_cache(T[0,:])
     acts = torch.stack([torch.clone(cache[f'blocks.{layer}.mlp.hook_post'][0,pos,:]) for layer in range(n_layers)])
     del logits
     del cache
     torch.cuda.empty_cache()
-    return acts
+    return acts.to('cpu')
 
 def get_mlp_act_entries_all_layers(model, T, entries):
     return torch.stack([get_mlp_act_entry_all_layers(model, T, entry[0], entry[1]) for entry in tqdm(entries, position=0, leave=True)])
