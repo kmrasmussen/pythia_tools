@@ -1,31 +1,50 @@
-# GPT MLPs
+# Notes on MLPs in GPT models
 
 This text consists of notes of conceptual and empirical investigations of the multilayer perceptrons in causal transformer language models, specifically models from the Pythia suite. The goal is to collect the basic empirical knowledge to reason about their function and role in the network and find the most useful approaches to interpreting the specific MLPs in specific models. 
 
-The notes will contain links to Google Colab notebooks that provide the evidence for the empirical claims. To make investigations easier, we have a Python package that makes loading Pythia models and validation data a bit more straight forward https://github.com/kmrasmussen/pythia_tools
+The notes will contain links to Google Colab notebooks that provide the evidence for the empirical claims. Some of the code for making these investigations is wrapped up in a Python package https://github.com/kmrasmussen/pythia_tools
 
 ## What is the MLP?
 The code for Pythia models can be found here: https://github.com/huggingface/transformers/blob/v4.27.2/src/transformers/models/gpt_neox/modeling_gpt_neox.py#L566
 A Pythia model is structured as follows:
 * Embedding $v \times d$ matrix where $v$ is vocabulary size (the number of tokens) and $d$ is the residual stream dimensionality. There is no affine layer
-* $L$ transformer blocks, that we will zero-index
-  * A multi-head self-attention providing additive update to the residual stream. LayerNorm is applied to the input.
+* $L$ transformer blocks, we refer to a block using zero indexing
+  * A multi-head self-attention providing an additive update to the residual stream. LayerNorm is applied to the input.
   * An MLP that takes the input from the residual stream after the attention part:
     * LayerNorm of the input vector $x \in R^d$
-      * $LayerNorm(x) = \frac{x - E[x]}{\sqrt{Var(x)}}* a_{ln} + b_{ln}$, where $a_{ln}$ and $b_{ln}$ are vectors in $R^d$ called scale and shift vectors.
+      * $LayerNorm(x) = \frac{x - E[x]}{\sqrt{Var(x)}}* a_{ln} + b_{ln}$, where $a_{ln}$ and $b_{ln}$ are vectors in $R^d$ called scale and shift vectors respectively.
     * An in-affine: $W_{in}$ is a $4d \times d$ matrix and a bias vector $b_{in}$ of dimensionality $4d$.
     * GELU activation function applied to each entry in the 4d output of the in-affine.
     * An out-affine: $W_{out}$ is a $d \times 4d$ matrix and a bias vector $b_{out}$ of dimensionality $d$.
 * Unembedding $v \times d$ matrix
 
-### A conceptual view of the MLP
-We say that in an MLP there are $4d$ neurons that activate according to the GELU activation function. For all neurons $i \in [4d]$ there is an associated row vector in $W_{in}$ and an associated column vector in $W_{out}$, both of dimensionality $d$. We 
+### One possible conceptual view of the MLP
+We say that in an MLP there are $4d$ neurons that activate according to the GELU activation function. For neuron $i$ there is an associated row vector in $W_{in}$ and an associated column vector in $W_{out}$, both of dimensionality $d$.
+* We call the row vector the receptor: It is a vector in $R^d$ that is placed so that the neuron fires when the LayerNormalized input vector has a high dot-product with its receptor. If the input vector and the receptor vector were both unit-norm this would be the cosine similarity between them. We will look empirically at the norms of inputs and receptors in the following sections.
+  * Due to the LayerNorm, it might not be useful to think of receptors and inputs as living in residual stream space. However, it might be worth somehow looking at how much this is the case.
+  * A general question for an MLP is how the unit-normalized receptors are distributed on the hypersphere. Are they roughly evenly distributed? Are there some receptors which are far apart from others?
+  * The in-bias $b_{in,i}$ is a scalar value and is the pre-activation of the neuron.
+* We will call the column vector the value vector: To the degree that the input is dot-product close to the receptor, the neuron will fire, and to the degree it fires the neurons value vector is written to the residual stream. The scaled value vector plus its out-bias $b_{out,i}$ we will call an MLP subupdate.
+  * Note that each neuron is acting separately, the output written to the residual stream by the MLP is the sum of subupdates plus the out-bias.
+  * Note that the in-bias and out-bias have quite different interpretations in this conceptual view: The in-bias consists of pre-activations for each neuron, while the out-bias is a d-dimensional vector that is "global" to the MLP.
 
 ## Basic statistics of MLPs
 
 It is often useful to frame investigations as being either static or non-static: By static investigation we mean that we look at a loaded trained Pythia model and just looking at parameters without making any forward passes. By non-static investigation we mean that we take some data, in our case mostly a small subset of the validation set (so "on-distribution data") and look at how the model behaves in this case. The most basic static investigation is to look at simple statistics and visualizations of the parameters.
 
-### 
+### Norms of row vectors
+We go through all MLPs of all the final Pythia models and compute the L2 norm of the row vectors. For a layer we take all the norms and make a histogram and boxplot to get a sense of the distribution.
+**TODO: Insert empirical findings and plots**
+Inside a single model, there is some variation among the distribution of norms for a layer. In model 1B it is roughly the case that for most layers the distribution is centered at norm 1 with most of the mass centered in the interval (0.8,1.2)
+**TODO: Compute means and variances and medians for each layer**
+
+### Norms of column vectors
+**TODO: Insert empirical findings and plots**
+
+### In-biases
+Since the in-bias $b_{in}$ is interpreted as the pre-activation, when looking at a specific MLP it is worth looking at how the entries in its $b_{in}$ is distributed.
+
+# Other
 
 
 For a neuron, there is an associated row vector, we call this vector the receptor: The neuron will fire if the input has a high dot product with the receptor. With respect to a specific receptor, we will think of it as the north pole, and for ReLU the south pole represents the neuron not firing.
