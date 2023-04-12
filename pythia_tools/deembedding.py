@@ -34,8 +34,11 @@ def get_svd_mlp_out(model, layer_idx):
   U, S, Vh = torch.linalg.svd(model.gpt_neox.layers[layer_idx].mlp.dense_4h_to_h.weight, full_matrices=False)
   return U, S, Vh
 
+def get_mlp_in(model, layer_idx):
+  return model.gpt_neox.layers[layer_idx].mlp.dense_h_to_4h.weight.detach()
+
 def get_mlp_out(model, layer_idx):
-  return model.gpt_neox.layers[layer_idx].mlp.dense_4h_to_h.weight
+  return model.gpt_neox.layers[layer_idx].mlp.dense_4h_to_h.weight.detach()
 
 def decode_vocab_pmf(pmf, tokenizer, top_k=20):
   token_ids = torch.argsort(pmf,dim=-1, descending=True)[:top_k]
