@@ -2,7 +2,7 @@ import torch
 import sys
 import matplotlib.pyplot as plt
 
-def hist_and_box(data, bins=50, title=None):
+def hist_and_box(data, bins=50, title=None, save_filename=None):
   # Create a figure with two subplots
   fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
@@ -21,5 +21,9 @@ def hist_and_box(data, bins=50, title=None):
   if title is not None:
     plt.suptitle(title)
 
+  if save_filename is not None:
+    plt.savefig(save_filename)
+
   # Show the plot
   plt.show()
+  plt.close(fig)
