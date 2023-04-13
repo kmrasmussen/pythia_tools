@@ -30,7 +30,7 @@ def get_model(size, rev, lens=False):
 def yield_models(lens=False):
     for model_name in model_names:
         model = get_model(model_name, 143, lens)
-        yield model
+        yield (model_name, model)
 
 def get_n_layers(model):
     if isinstance(model, GPTNeoXForCausalLM):

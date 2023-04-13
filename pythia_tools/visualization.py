@@ -2,7 +2,8 @@ import torch
 import sys
 import matplotlib.pyplot as plt
 
-def hist_and_box(data, bins=50, title=None, save_filename=None):
+def hist_and_box(data_in, bins=50, title=None, save_filename=None):
+  data = data_in.detach().cpu()
   # Create a figure with two subplots
   fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 

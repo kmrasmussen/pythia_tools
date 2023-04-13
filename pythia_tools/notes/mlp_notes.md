@@ -42,7 +42,15 @@ Inside a single model, there is some variation among the distribution of norms f
 **TODO: Insert empirical findings and plots**
 
 ### In-biases
-Since the in-bias $b_{in}$ is interpreted as the pre-activation, when looking at a specific MLP it is worth looking at how the entries in its $b_{in}$ is distributed.
+Colab https://colab.research.google.com/drive/1wJRmVwaXC8ECGPghax2JcJWhs2qcyywY?usp=sharing
+
+*How are entries distributed in the in-bias?* Since the in-bias $b_{in}$ is interpreted as the pre-activation, when looking at a specific MLP it is worth looking at how the entries in its $b_{in}$ is distributed. Histograms and boxplots for each layer in each model can be found here https://antipiano.com/pythia_browser/section/in_bias/
+We see that the biases are in general slightly negative around -0.1. In 1B the median is closer to 0. There are some cases of outliers with very high bias terms. This is especially true in 70m where layer 4 and 5 have neurons around 1. In 1B the highest biases are not so large, not much larger than 0.1, except for the first two layers where some neurons are > 0.3.
+
+### Activation frequencies
+*How often are MLP neurons active?* A ReLU neuron is active when its receptor dotted with the input plus its bias is greater than 0. The GELU has a bit more complicated shape, but the idea should still be useful. In a non-static investigation we can take N sequences of length T and feed through the model, and look at the $NT$ different activation in a specific layer. For neuron $i$, how large a fraction of the $NT$ cases resulted in positive activation, the activation-fraction of the neuron. How are activation-fractions distributed in a layer? Since we are looking at all the T activation vectors for each sequence there might be a problem that activations are correlated within a sequence, however this might not be such a big problem. Alternatively one can take a larger $N$ and sample a random position to address this concern.
+
+
 
 # Other
 
