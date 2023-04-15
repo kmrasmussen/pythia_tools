@@ -13,8 +13,8 @@ model_names = ['70m', '160m', '410m', '1b']
 n_layers_dict = {
     '70m': 6,
     '160m': 12,
-    '410m': 12,
-    '1b': 24
+    '410m': 24,
+    '1b': 16
 }
 
 def get_param_sizes_list():

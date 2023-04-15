@@ -2,7 +2,7 @@
 
 This text consists of notes of conceptual and empirical investigations of the multilayer perceptrons in causal transformer language models, specifically models from the Pythia suite. The goal is to collect the basic empirical knowledge to reason about their function and role in the network and find the most useful approaches to interpreting the specific MLPs in specific models. 
 
-The notes will contain links to Google Colab notebooks that provide the evidence for the empirical claims. Some of the code for making these investigations is wrapped up in a Python package https://github.com/kmrasmussen/pythia_tools. Some of the data produced in empirical investigations are placed on a website https://antipiano.com/pythia_browser/
+The notes will contain links to Google Colab notebooks that provide the evidence for the empirical claims. Some of the code for making these investigations is wrapped up in a Python package https://github.com/kmrasmussen/pythia_tools. Some of the data produced in empirical investigations are placed on a website https://antipiano.com/pythia_browser/, notebooks to produce the data for Pythia browser is here https://github.com/kmrasmussen/pythia_browser
 
 ## What is the MLP?
 The code for Pythia models can be found here: https://github.com/huggingface/transformers/blob/v4.27.2/src/transformers/models/gpt_neox/modeling_gpt_neox.py#L566
@@ -25,7 +25,7 @@ We say that in an MLP there are $4d$ neurons that activate according to the GELU
   * A general question for an MLP is how the unit-normalized receptors are distributed on the hypersphere. Are they roughly evenly distributed? Are there some receptors which are far apart from others?
   * The in-bias $b_{in,i}$ is a scalar value and is the pre-activation of the neuron.
 * We will call the column vector the value vector: To the degree that the input is dot-product close to the receptor, the neuron will fire, and to the degree it fires the neurons value vector is written to the residual stream. The scaled value vector we will call the neurons subupdate.
-  * Note that each neuron is acting separately, the output written to the residual stream by the MLP is the sum of subupdates plus the out-bias.
+  * Note that each neuron is acting separately, the output written to the residual stream by the MLP is the sum of subupdates plus the out-bias. The sum including the bias we will call the total update.
   * Note that the in-bias and out-bias have quite different interpretations in this conceptual view: The in-bias consists of pre-activations for each neuron, while the out-bias is a d-dimensional vector that is "global" to the MLP.
 
 
@@ -35,15 +35,26 @@ It is often useful to frame investigations as being either static or non-static:
 
 ### Norms of row vectors
 We go through all MLPs of all the final Pythia models and compute the L2 norm of the row vectors. For a layer we take all the norms and make a histogram and boxplot to get a sense of the distribution.
-**TODO: Insert empirical findings and plots**
+
+The plots can be found here https://antipiano.com/pythia_browser/section/in_row_norm/
+
 Inside a single model, there is some variation among the distribution of norms for a layer. In model 1B it is roughly the case that for most layers the distribution is centered at norm 1 with most of the mass centered in the interval (0.8,1.2)
 **TODO: Compute means and variances and medians for each layer**
 
+Overall the plots do not give any very clear or useful conclusions. Later we will present the idea of folding in layernorm into the in-affine, which means will lead to a new in-affine. These rows can be interpreted separately.
+
 ### Norms of column vectors
-**TODO: Insert empirical findings and plots**
+We do the same for column vectors. Here we do not have the option of an alternative view based on folding in layer-norm. 
+
+The plots can be found here https://antipiano.com/pythia_browser/section/out_col_norm/
+
+The shape of the distributions are most clear for larger models, 410m and 1b
+
+Observations:
+* For 410 the most layers have distributions centered around 0.6 with a right-tail of outliers around 1.6. For 1b the distributions are centered around 0.8 wiht right outliers above 2
+* Some distributions are more skewed than others, is there a pattern with early and late layers being more symmetric?
 
 ### In-biases
-Colab https://colab.research.google.com/drive/1wJRmVwaXC8ECGPghax2JcJWhs2qcyywY?usp=sharing
 
 *How are entries distributed in the in-bias?* Since the in-bias $b_{in}$ is interpreted as the pre-activation, when looking at a specific MLP it is worth looking at how the entries in its $b_{in}$ is distributed. Histograms and boxplots for each layer in each model can be found here https://antipiano.com/pythia_browser/section/in_bias/
 We see that the biases are in general slightly negative around -0.1. In 1B the median is closer to 0. There are some cases of outliers with very high bias terms. This is especially true in 70m where layer 4 and 5 have neurons around 1. In 1B the highest biases are not so large, not much larger than 0.1, except for the first two layers where some neurons are > 0.3.
@@ -52,9 +63,17 @@ We see that the biases are in general slightly negative around -0.1. In 1B the m
 *How often are MLP neurons active?* A ReLU neuron is active when its receptor dotted with the input plus its bias is greater than 0. The GELU has a bit more complicated shape, but the idea should still be useful. In a non-static investigation we can take N sequences of length T and feed through the model, and look at the $NT$ different activation in a specific layer. For neuron $i$, how large a fraction of the $NT$ cases resulted in positive activation, the activation-fraction of the neuron. How are activation-fractions distributed in a layer? Since we are looking at all the T activation vectors for each sequence there might be a problem that activations are correlated within a sequence, however this might not be such a big problem. Alternatively one can take a larger $N$ and sample a random position to address this concern. The resulting histogram from using this alternative approach looks very much like the hisogram from the first approach. The first approach requires less compute, since it has fewer forward passes.
 
 Histograms and boxplots for each layer in each model (up to 410m) can be found here
-https://antipiano.com/pythia_browser/section/act_frac/
+https://antipiano.com/pythia_browser/section/act_frac/. We used the method where we use all activations for all tokens for all sequences, but we only use 10 sequences. Therefore one should not draw too strong conclusions from the data.
+
+We draw two conclusions from these plots:
+* Across layers and models, it is common for neurons to have an activation-fraction of .2.
+* In all layers and models, there are outlier neurons that have activation-fractions above .8.
+
+
 
 ### Folding in LayerNorm
+(The folding in of LayerNorm presented in this section is very related to the folding in in TransformerLens, but TransformerLens does not fold in the constant that turns standardization into L2-normalization.)
+
 For fixed layernorm parameters $a_{ln}$, $b_{ln}$ and in-affine with $W_{in}$, $b_{in}$, one can fold the layernorm and in-affine into each other in a way that can be conceptually useful:
 
 In this section $x$ is the input to layernorm, not the input to the in-affine., i.e. $x$ is the vector read from the residual stream. First, layernorm the shift and scale operation in layernorm is an affine transformation, because the scaling can be written as a diagonal matrix $A_{ln}$ where the diagonal is the vector $a_{ln}$ The demeaning is a linear transformation, can be written as a matrix $D$ with diagonal entries being $1-1/d$ and the off-entries being $1/d$. Dividing by the standard deviation can be written as dividing by the product of $\sqrt{1/(d-1)}$ and the L2 norm of the demeaned vector.
@@ -82,20 +101,32 @@ $$
 Consider $r$ fixed with a direction and norm. Then it could make sense to define $\epsilon_r = \frac{-b}{||r||}$ and look at the probability that a random input $X$ selected uniformly from the hypersphere where inputs in folded receptor space live and looking at the probability that $sim(r,X) > \epsilon_r$. We could call it the activation volume for the receptor.
 
 Though the models use GELU, consider for now ReLU neurons. The neuron activation is then
-$$
-ReLU(||r||sim(r,x') + b)
+$$ReLU(||r||sim(r,x') + b)
 $$
 which can be viewed first as a shifted ReLU which only starts activating at $-b$ and then does so, not with slope 1 but with slope $||r||$
 $$ReLU_{-b}^{||r||}(sim(r,x'))$$
-I'm not sure about this, but this seems to suggest that for ReLU neurons, it is not active outside the activation volume and then activation increases linearly. Notice the upper bound on the activation is then $$$$
-# Uniform activation frequency
-A related notion that might be interesting to further understand activations is a specific form of static investigation: A neuron fires if the dot product of the input and 
+I'm not sure about this, but this seems to suggest that for ReLU neurons, it is not active outside the activation volume and then activation increases linearly. Notice the upper bound on the activation is then.
+## Static investigation: Activation volumes
+**TODO: Implement the folding in as described in the above section and compute (approximate using uniforom sampling) the activation volumes for neurons and plot histograms and boxplots**
+
+## Non-static investigation: How many neurons are involved in a total update?
+We have defined the notions of subupdate and total update above. Above we saw that often a neuron has an activation fraction of .2. A related question is, for a specific total update (i.e. the output of a specific MLP at a specific position in a specific sequence), how many neurons are active, and more generally how much do the subupdates from each neuron contribute to the total update.
+
+For the first case we take 10 sequences of length 600, and for each model and layer we look at the $10 \cdot 600$ activation vectors of size $4d$ (after the GELU). How many are positive, that is how many neurons are "active", how large a fraction?
+
+Histogram and boxplot and boxplot can be found here https://antipiano.com/pythia_browser/section/token_act_frac/
+
+We find that using 10 sequences is enough to get a general feel for the shape, in the sense that using another 10 sequences will give roughly the same shape.
+
+If all neurons activated iid probability $p$, then the expected of neurons active is also $p$. From the plots we see that the generally the distributions of neuron activation fraction and token activation fraction have peak at roughly the same place which is roughly $.2$.
+
+There are many cases where outliers in token activation fraction distributions form a small mode above .5
+
+## Taking seriously that we are using GELU and not RELU
+The GELU can take on negative values. In many cases a very large fraction of activations will be <-0.1. This cannot be ignored.
 
 # Other
-
-
 For a neuron, there is an associated row vector, we call this vector the receptor: The neuron will fire if the input has a high dot product with the receptor. With respect to a specific receptor, we will think of it as the north pole, and for ReLU the south pole represents the neuron not firing.
-
 ## How often are neurons active?
 A basic question that is worth answering in order to better understand MLPs is how often neurons are active. There are many ways to understand this question and ways to answer these questions. We are using Pythia models and as data we use 10K sequences of length 600 from the Pile validation set.
 
