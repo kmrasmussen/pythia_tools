@@ -2,15 +2,15 @@
 
 This text consists of notes of conceptual and empirical investigations of the multilayer perceptrons in causal transformer language models, specifically models from the Pythia suite. The goal is to collect the basic empirical knowledge to reason about their function and role in the network and find the most useful approaches to interpreting the specific MLPs in specific models. 
 
-The notes will contain links to Google Colab notebooks that provide the evidence for the empirical claims. Some of the code for making these investigations is wrapped up in a Python package https://github.com/kmrasmussen/pythia_tools
+The notes will contain links to Google Colab notebooks that provide the evidence for the empirical claims. Some of the code for making these investigations is wrapped up in a Python package https://github.com/kmrasmussen/pythia_tools. Some of the data produced in empirical investigations are placed on a website https://antipiano.com/pythia_browser/
 
 ## What is the MLP?
 The code for Pythia models can be found here: https://github.com/huggingface/transformers/blob/v4.27.2/src/transformers/models/gpt_neox/modeling_gpt_neox.py#L566
 A Pythia model is structured as follows:
-* Embedding $v \times d$ matrix where $v$ is vocabulary size (the number of tokens) and $d$ is the residual stream dimensionality. There is no affine layer
-* $L$ transformer blocks, we refer to a block using zero indexing
-  * A multi-head self-attention providing an additive update to the residual stream. LayerNorm is applied to the input.
-  * An MLP that takes the input from the residual stream after the attention part:
+* Embedding $v \times d$ matrix where $v$ is vocabulary size (the number of tokens) and $d$ is the residual stream dimensionality. There is no bias.
+* $L$ transformer blocks. I refer to a block using zero indexing.
+  * A multi-head self-attention providing an additive update to the residual stream of each position. LayerNorm is applied to the input.
+  * An MLP that is applied to each residual stream separately to give additive updates to each residual stream separately. Itakes the input from the residual stream after the attention part:
     * LayerNorm of the input vector $x \in R^d$
       * $LayerNorm(x) = \frac{x - E[x]}{\sqrt{Var(x)}}* a_{ln} + b_{ln}$, where $a_{ln}$ and $b_{ln}$ are vectors in $R^d$ called scale and shift vectors respectively.
     * An in-affine: $W_{in}$ is a $4d \times d$ matrix and a bias vector $b_{in}$ of dimensionality $4d$.
@@ -20,13 +20,14 @@ A Pythia model is structured as follows:
 
 ### One possible conceptual view of the MLP
 We say that in an MLP there are $4d$ neurons that activate according to the GELU activation function. For neuron $i$ there is an associated row vector in $W_{in}$ and an associated column vector in $W_{out}$, both of dimensionality $d$.
-* We call the row vector the receptor: It is a vector in $R^d$ that is placed so that the neuron fires when the LayerNormalized input vector has a high dot-product with its receptor. If the input vector and the receptor vector were both unit-norm this would be the cosine similarity between them. We will look empirically at the norms of inputs and receptors in the following sections.
+* We call the row vector the receptor: It is a vector in $R^d$ that is placed so that the neuron fires when the LayerNormalized input vector has a high dot-product with its receptor - but bias is included. If the input vector and the receptor vector were both unit-norm this would be the cosine similarity between them. We will look empirically at the norms of inputs and receptors in the following sections.
   * Due to the LayerNorm, it might not be useful to think of receptors and inputs as living in residual stream space. However, it might be worth somehow looking at how much this is the case.
   * A general question for an MLP is how the unit-normalized receptors are distributed on the hypersphere. Are they roughly evenly distributed? Are there some receptors which are far apart from others?
   * The in-bias $b_{in,i}$ is a scalar value and is the pre-activation of the neuron.
-* We will call the column vector the value vector: To the degree that the input is dot-product close to the receptor, the neuron will fire, and to the degree it fires the neurons value vector is written to the residual stream. The scaled value vector plus its out-bias $b_{out,i}$ we will call an MLP subupdate.
+* We will call the column vector the value vector: To the degree that the input is dot-product close to the receptor, the neuron will fire, and to the degree it fires the neurons value vector is written to the residual stream. The scaled value vector we will call the neurons subupdate.
   * Note that each neuron is acting separately, the output written to the residual stream by the MLP is the sum of subupdates plus the out-bias.
   * Note that the in-bias and out-bias have quite different interpretations in this conceptual view: The in-bias consists of pre-activations for each neuron, while the out-bias is a d-dimensional vector that is "global" to the MLP.
+
 
 ## Basic statistics of MLPs
 
@@ -53,7 +54,42 @@ We see that the biases are in general slightly negative around -0.1. In 1B the m
 Histograms and boxplots for each layer in each model (up to 410m) can be found here
 https://antipiano.com/pythia_browser/section/act_frac/
 
+### Folding in LayerNorm
+For fixed layernorm parameters $a_{ln}$, $b_{ln}$ and in-affine with $W_{in}$, $b_{in}$, one can fold the layernorm and in-affine into each other in a way that can be conceptually useful:
 
+In this section $x$ is the input to layernorm, not the input to the in-affine., i.e. $x$ is the vector read from the residual stream. First, layernorm the shift and scale operation in layernorm is an affine transformation, because the scaling can be written as a diagonal matrix $A_{ln}$ where the diagonal is the vector $a_{ln}$ The demeaning is a linear transformation, can be written as a matrix $D$ with diagonal entries being $1-1/d$ and the off-entries being $1/d$. Dividing by the standard deviation can be written as dividing by the product of $\sqrt{1/(d-1)}$ and the L2 norm of the demeaned vector.
+
+$$
+LayerNorm(x) = A_{ln}(\sqrt{\frac{1}{d-1}} \frac{Dx}{||Dx||}) + b_{ln}
+$$
+where the scaling $\sqrt{\frac{1}{d-1}}$ is a linear operation $S$, meaning we can make $A'_{ln} = A_{ln} S$. Let $x' = \frac{Dx}{||Dx||}$ then LayerNorm is
+$$
+LayerNorm(x) = A'_{ln}x' + b_{ln}
+$$
+This input is fed to the MLP-in affine, so
+$$
+MLP_{in}(x) = W_{in}(A'_{ln}x' + b_{ln}) + b_{in} = (W_{in}A_{ln}')x' + (W_{in}b_{ln} + b_{in}) = W'_{in}x' + b'_{in}
+$$
+This I will call the folded in-affine and I will call the space where $x'$ lives the in folded receptor space.
+
+This suggests a view of the LayerNorm-MLP block that is like this: $x$ is taken from the residual stream and moved by $D$ to folded-receptor-space where it is then normalized to $x'$. In folded receptor space, inputs are always unit norm. 
+
+Since inputs $x'$ are unit-norm, neuron activations can be understood in terms of cosine similarity. A neuron with receptor $r$ and bias $b$ has activation when:
+$$
+r * x' + b = ||r||sim(r,x') + b > 0 \implies sim(r,x') > \frac{-b}{||r||}
+$$
+
+Consider $r$ fixed with a direction and norm. Then it could make sense to define $\epsilon_r = \frac{-b}{||r||}$ and look at the probability that a random input $X$ selected uniformly from the hypersphere where inputs in folded receptor space live and looking at the probability that $sim(r,X) > \epsilon_r$. We could call it the activation volume for the receptor.
+
+Though the models use GELU, consider for now ReLU neurons. The neuron activation is then
+$$
+ReLU(||r||sim(r,x') + b)
+$$
+which can be viewed first as a shifted ReLU which only starts activating at $-b$ and then does so, not with slope 1 but with slope $||r||$
+$$ReLU_{-b}^{||r||}(sim(r,x'))$$
+I'm not sure about this, but this seems to suggest that for ReLU neurons, it is not active outside the activation volume and then activation increases linearly. Notice the upper bound on the activation is then $$$$
+# Uniform activation frequency
+A related notion that might be interesting to further understand activations is a specific form of static investigation: A neuron fires if the dot product of the input and 
 
 # Other
 

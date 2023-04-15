@@ -28,7 +28,10 @@ def get_tokenizer():
 def get_model(size, rev, lens=False):
     if lens:
         # transformerlens has rev 0 indexed, so we subtract 1
-        model = HookedTransformer.from_pretrained(f"pythia-{size}-deduped", checkpoint_index=rev-1)
+        model = HookedTransformer.from_pretrained(f"pythia-{size}-deduped", 
+                                                  checkpoint_index=rev-1, 
+                                                  center_writing_weights=False,
+                                                  center_unembed=False, fold_ln=False)
     else:
         model = GPTNeoXForCausalLM.from_pretrained(f"EleutherAI/pythia-{size}-deduped", revision=f"step{rev}000", cache_dir=f"./pythia-{size}-deduped/step{rev}000").to(device)
     return model
