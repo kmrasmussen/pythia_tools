@@ -26,3 +26,17 @@ def get_many_pres_all_layers(model, seq_ids, T):
   ret = torch.stack(pres)
   del pres
   return ret # seqs, layers, position, neurons
+
+def get_many_hooks_all_layers(model, seq_ids, T, hook_name='mlp.hook_post'):
+  pres = []
+  for seq_id in tqdm(seq_ids):
+    logits, cache = model.run_with_cache(T[seq_id], prepend_bos=False, remove_batch_dim=True)
+    pre = [torch.clone(cache[f'blocks.{layer}.{hook_name}']) for layer in range(get_n_layers(model))]
+    del logits
+    del cache
+    torch.cuda.empty_cache()
+    pres.append(torch.stack(pre))
+    del pre
+  ret = torch.stack(pres)
+  del pres
+  return ret # seqs, layers, position, neurons

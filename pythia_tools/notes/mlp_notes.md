@@ -122,8 +122,18 @@ If all neurons activated iid probability $p$, then the expected of neurons activ
 
 There are many cases where outliers in token activation fraction distributions form a small mode above .5
 
-## Taking seriously that we are using GELU and not RELU
-The GELU can take on negative values. In many cases a very large fraction of activations will be <-0.1. This cannot be ignored.
+## How much do subupdates contribute to the total update?
+When investigating this we should remember that GELU can take on negative values. In many cases a very large fraction of activations will be <-0.1. This cannot be ignored. If you remove the subupdates for which the activation is negative the resulting update will have almost no cosine similarity to the total update (cosine sim < 0.03)
+
+If we take all the total updates without the bias (so the sum of the subupdates) in a sequence and take their mean, we can call it the subupdate mean. For some layers the subupdate means are very cosine-similar across sequences. In the cases where they are very similar we can use a fuzzy concept of a virtual bias. I hypothesize that this virtual bias is explained by neurons with high bias terms which are always active with relatively high activation. It might be necessary to reframe subupdates where this virtual bias is factored out. How does one remove this virtual bias? One way could be to compute the mean subupdate for each 
+
+One way of looking at contributions to total subupdates is to make cumulative sums of subupdates add the bias and compare to the total sum of subupdates plus bias which is the total update in term of cosine similarity. One can also do this without the bias. One way of ordering the sums is by their activation fraction. Another is by the norm of the updates.
+
+Ordered by descending activation the pattern is one of rapid increase in the cosine similarity using the first hundreds of highest ranking subupdates up to 0.6-0.7 followed by a plateau and then a slow rise to similarity 1. This curve is not monotonically increasing. It will be worth 
+
+# MLP input-output Jacobians
+The MLP is a function $f : R^d \to R^d$. For any input $x \in R^d$, the Jacobian $J_f(x)$ is a matrix of all the partial derivatives.
+
 
 # Other
 For a neuron, there is an associated row vector, we call this vector the receptor: The neuron will fire if the input has a high dot product with the receptor. With respect to a specific receptor, we will think of it as the north pole, and for ReLU the south pole represents the neuron not firing.

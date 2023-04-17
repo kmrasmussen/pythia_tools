@@ -27,9 +27,8 @@ def get_tokenizer():
 
 def get_model(size, rev, lens=False):
     if lens:
-        # transformerlens has rev 0 indexed, so we subtract 1
+        print('Not using rev for transformerlens, something weird with rev please fix')
         model = HookedTransformer.from_pretrained(f"pythia-{size}-deduped", 
-                                                  checkpoint_index=rev-1, 
                                                   center_writing_weights=False,
                                                   center_unembed=False, fold_ln=False)
     else:
