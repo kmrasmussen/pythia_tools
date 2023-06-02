@@ -22,3 +22,11 @@ def get_similarity_cross(A1, A2):
     B = dot_products / torch.ger(norms_A1, norms_A2)
     
     return B
+
+def get_kl_sim_cross(lst_A, lst_B):
+  kl_loss = torch.nn.KLDivLoss(reduction="mean")
+  kl_sim = torch.zeros(len(lst_A), len(lst_B))
+  for i in range(len(lst_A)):
+    for j in range(len(lst_B)):
+      kl_sim[i,j] = kl_loss(F.log_softmax(lst_A[i],dim=0),F.softmax(lst_B[j],dim=0)).item()
+  return kl_sim

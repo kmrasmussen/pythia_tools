@@ -48,10 +48,10 @@ def get_filtered_entries(new_lownat_entries, T):
       #print(entry_id, ' - ', seq_id, pos)
   return torch.stack(filtered_entries)
 
-def get_behavior(T, entries, idx):
+def get_behavior(T, entries, idx, tokenizer):
   seq, pos = entries[idx][0].item(), entries[idx][1].item()
   print('Seq', seq, 'pos', pos) #, 'Induction: ', check_bigram_ind(T3[seq], pos) >= 0)
-  plot_entry_nats(T, entries, idx)
+  #plot_entry_nats(T, entries, idx)
   #print(f'Nats: 410: {L410[seq,pos]:.4f}, 160: {L160[seq,pos]:.4f}, 70 {L70[seq,pos]:.4f}')
   print('---')
   print(tokenizer.decode(T[seq][pos-100:pos]))

@@ -75,3 +75,11 @@ def get_token_mat(data_dir = 'pythia_tools/pythia_tools/data_files'):
     T = torch.load(join(data_dir, 'tokens_10691x600.pt')).to(device)
     print(T.shape)
     return T
+
+def get_bigrams_dict(
+        dict_dir = '/content/drive/MyDrive/thesis/data/bigrams/bigrams_dict_10k.pt',
+        qset_dir = '/content/drive/MyDrive/thesis/data/bigrams/consequent_sets_bigrams_10k.pt'):
+    bigrams_dict = torch.load(dict_dir)
+    qset_dict = torch.load(qset_dir)
+    return bigrams_dict, qset_dict
+

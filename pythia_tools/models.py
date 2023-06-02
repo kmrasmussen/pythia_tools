@@ -28,11 +28,11 @@ def get_tokenizer():
 def get_model(size, rev, lens=False):
     if lens:
         print('Not using rev for transformerlens, something weird with rev please fix')
-        model = HookedTransformer.from_pretrained(f"pythia-{size}-deduped", 
+        model = HookedTransformer.from_pretrained(f"pythia-{size}-deduped-v0", 
                                                   center_writing_weights=False,
                                                   center_unembed=False, fold_ln=False)
     else:
-        model = GPTNeoXForCausalLM.from_pretrained(f"EleutherAI/pythia-{size}-deduped", revision=f"step{rev}000", cache_dir=f"./pythia-{size}-deduped/step{rev}000").to(device)
+        model = GPTNeoXForCausalLM.from_pretrained(f"EleutherAI/pythia-{size}-deduped-v0", revision=f"step{rev}000", cache_dir=f"./pythia-{size}-deduped/step{rev}000").to(device)
     return model
 
 def yield_models(names=None, lens=False):
