@@ -87,3 +87,10 @@ def display_columns(U, n_cols=30, make_plots=True):
     print('out', display_column_out)
     return_list.append(display_column_out)
   return torch.tensor(return_list)
+
+def display_qset(bigram_id,qset_dict,tokenizer):
+  if bigram_id in qset_dict:
+    words = [tokenizer.decode(token_id) for token_id in qset_dict[bigram_id]]
+    #words.reverse()
+    return '; '.join(words)
+  return ''

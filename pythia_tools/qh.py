@@ -56,8 +56,8 @@ def get_behavior(T, entries, idx, tokenizer):
   print('---')
   print(tokenizer.decode(T[seq][pos-100:pos]))
   print('---')
-  print("Current token:", tokenizer.decode(T[seq][pos]))
-  print("Next (low-nat) token:", tokenizer.decode(T[seq][pos+1]))
+  print("Current token:", repr(tokenizer.decode(T[seq][pos])))
+  print("Next (low-nat) token:", repr(tokenizer.decode(T[seq][pos+1])))
   print('---')
   print(tokenizer.decode(T[seq][pos+2:pos+100]))
 

@@ -1,5 +1,6 @@
 import torch.nn.functional as F
 import torch
+import pickle
 
 def normalize(x, dim=None):
   if len(x.shape) == 1:
@@ -16,11 +17,8 @@ def mem_size(tensor):
 def get_similarity_cross(A1, A2):
     norms_A1 = torch.norm(A1, dim=1)
     norms_A2 = torch.norm(A2, dim=1)
-    
     dot_products = A1 @ A2.t()
-    
     B = dot_products / torch.ger(norms_A1, norms_A2)
-    
     return B
 
 def get_kl_sim_cross(lst_A, lst_B):
@@ -30,3 +28,9 @@ def get_kl_sim_cross(lst_A, lst_B):
     for j in range(len(lst_B)):
       kl_sim[i,j] = kl_loss(F.log_softmax(lst_A[i],dim=0),F.softmax(lst_B[j],dim=0)).item()
   return kl_sim
+
+def load_pkl(path):
+  with open(path, 'rb') as file:
+    # Load data from the file
+    loaded_data = pickle.load(file)
+  return loaded_data
